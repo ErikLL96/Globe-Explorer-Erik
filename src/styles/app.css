@@ -271,6 +271,40 @@
   stroke-linejoin: round;
 }
 
+/* Personal photo pins. A compact square crop is generated locally from the first
+   journal photo; MapLibre still positions and hides them on the back of the globe. */
+.gm--photo {
+  width: 44px;
+  height: 44px;
+}
+
+.gm--photo .gm__dot { display: none; }
+
+.gm__photo {
+  position: absolute;
+  inset: 2px;
+  width: 40px;
+  height: 40px;
+  display: block;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  outline: 2px solid var(--visited);
+  background: var(--visited-soft);
+  box-shadow: 0 3px 10px rgba(21, 39, 68, .35);
+  transition: transform .2s var(--ease);
+}
+
+.gm__photo[hidden] { display: none; }
+
+.gm--photo:hover .gm__photo,
+.gm--photo:focus-visible .gm__photo,
+.gm--photo.gm--selected .gm__photo {
+  transform: scale(1.15);
+}
+
+.gm--photo .gm__pulse { inset: -3px; }
+
 /* Wishlist markers are diamonds without a tick, so status never depends on colour alone. */
 .gm--wishlist .gm__dot {
   width: 14px;

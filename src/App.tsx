@@ -189,6 +189,7 @@ export default function App() {
         <div className="stage__globe">
           <TravelGlobe
             destinations={markerDestinations}
+            isDemo={isDemo}
             countryStatuses={countryStatuses}
             selectedId={selectedId}
             focusRequest={focusRequest}

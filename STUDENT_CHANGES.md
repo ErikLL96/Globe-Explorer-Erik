@@ -31,3 +31,7 @@ project copy. Review/merge changes before applying them to the shared branch.
 - Unsupported HEIC uploads need converting to JPEG first.
 - Images are only stored on the local device; they are not published to the web
   when this app is deployed.
+
+## Additional improvement — photo markers
+
+Visited destinations with saved journal pictures now show circular photos directly on the 3D globe. Thumbnails use the first saved picture, are generated locally, and update when pictures are added or removed. See `PHOTO_MARKERS.md` for testing and limitations.

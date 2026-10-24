@@ -8,6 +8,8 @@ import { countryName } from '../../domain/countries';
 import type { CountryStatuses } from '../../domain/countryStatus';
 import { buildGlobeStyle, countryFill, countryLabelColor, MAX_ZOOM } from './globeStyle';
 import { prefersReducedMotion } from '../../utils/motion';
+import { listPhotos, PHOTOS_CHANGED_EVENT } from '../../domain/photos';
+import { createMarkerThumbnailURL } from '../../domain/photoThumbnails';
 
 export interface PickedPoint {
   longitude: number;
@@ -25,6 +27,8 @@ export interface FocusRequest {
 
 interface TravelGlobeProps {
   destinations: readonly Destination[];
+  /** Photo markers are hidden in fictional, read-only demo mode. */
+  isDemo: boolean;
   /** Which countries are visited / wishlist-only — drives the polygon colours. */
   countryStatuses: CountryStatuses;
   selectedId: string | null;
@@ -72,11 +76,20 @@ function createMarkerElement(): HTMLButtonElement {
     '<span class="gm__dot" aria-hidden="true">' +
     '<svg class="gm__check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>' +
     '</span>';
+  // A photo is optional: normal markers remain visible until a preview loads.
+  const image = document.createElement('img');
+  image.className = 'gm__photo';
+  image.alt = ''; // The button itself has the accessible city/country label.
+  image.setAttribute('aria-hidden', 'true');
+  image.decoding = 'async';
+  image.hidden = true;
+  el.appendChild(image);
   return el;
 }
 
 export function TravelGlobe({
   destinations,
+  isDemo,
   countryStatuses,
   selectedId,
   focusRequest,
@@ -93,6 +106,13 @@ export function TravelGlobe({
   const [webgl] = useState(supportsWebGL);
   const [status, setStatus] = useState<MapStatus>(webgl ? 'loading' : 'error');
   const [projection, setProjection] = useState<'globe' | 'mercator'>('globe');
+  const [photoRevision, setPhotoRevision] = useState(0);
+
+  useEffect(() => {
+    const onPhotosChanged = () => setPhotoRevision((revision) => revision + 1);
+    window.addEventListener(PHOTOS_CHANGED_EVENT, onPhotosChanged);
+    return () => window.removeEventListener(PHOTOS_CHANGED_EVENT, onPhotosChanged);
+  }, []);
 
   // Keep the latest callbacks in a ref so map listeners (registered once) never go stale.
   const handlers = useRef({ onSelect, onPick, onBackgroundClick, pickMode });
@@ -237,6 +257,54 @@ export function TravelGlobe({
       el.title = `${d.city}, ${d.country}`;
     }
   }, [destinations, selectedId]);
+
+  // Show the oldest saved journal photo as a small round marker on visited destinations.
+  // Object URLs are revoked whenever the list changes, photos change, or the component unmounts.
+  useEffect(() => {
+    let cancelled = false;
+    const urls: string[] = [];
+    const markers = markersRef.current;
+
+    // Reset immediately so removing photos or changing to wishlist reverts to a plain dot.
+    for (const { el } of markers.values()) {
+      el.classList.remove('gm--photo');
+      const image = el.querySelector<HTMLImageElement>('.gm__photo');
+      if (image) { image.hidden = true; image.removeAttribute('src'); }
+    }
+
+    if (!isDemo) {
+      for (const d of destinations) {
+        if (d.status !== 'visited') continue;
+        void (async () => {
+          try {
+            const photos = await listPhotos(d.id);
+            if (cancelled || photos.length === 0) return;
+            const url = await createMarkerThumbnailURL(photos[0].blob);
+            if (cancelled) { URL.revokeObjectURL(url); return; }
+            const entry = markers.get(d.id);
+            const image = entry?.el.querySelector<HTMLImageElement>('.gm__photo');
+            if (!entry || !image) { URL.revokeObjectURL(url); return; }
+            urls.push(url);
+            image.src = url;
+            image.hidden = false;
+            entry.el.classList.add('gm--photo');
+          } catch {
+            // IndexedDB may be unavailable: preserve the original marker as fallback.
+          }
+        })();
+      }
+    }
+
+    return () => {
+      cancelled = true;
+      for (const url of urls) URL.revokeObjectURL(url);
+      for (const { el } of markers.values()) {
+        el.classList.remove('gm--photo');
+        const image = el.querySelector<HTMLImageElement>('.gm__photo');
+        if (image) { image.hidden = true; image.removeAttribute('src'); }
+      }
+    };
+  }, [destinations, isDemo, photoRevision]);
 
   // Fly to a requested place along the shortest path (handles the date line).
   useEffect(() => {

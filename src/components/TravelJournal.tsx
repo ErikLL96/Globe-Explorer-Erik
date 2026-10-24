@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { Camera, ImagePlus, MapPin, Pencil, Trash2, X } from 'lucide-react';
 import type { Destination } from '../domain/types';
-import { addPhoto, listPhotos, MAX_PHOTOS_PER_DESTINATION, removePhoto, type JournalPhoto } from '../domain/photos';
+import { addPhoto, announcePhotosChanged, listPhotos, MAX_PHOTOS_PER_DESTINATION, removePhoto, type JournalPhoto } from '../domain/photos';
 
 function LocalPhoto({ photo, onRemove, readOnly }: { photo: JournalPhoto; onRemove: (id:string)=>void; readOnly: boolean }) {
   const [src, setSrc] = useState<string>('');
@@ -49,7 +49,7 @@ export function TravelJournal({ destination: d, isDemo, onClose, onEdit, onShowO
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not save photos.');
       try { await reload(); } catch { /* report the original error */ }
-    } finally { setBusy(false); }
+    } finally { announcePhotosChanged(d.id); setBusy(false); }
   }
 
   async function handleRemove(photoId: string) {
@@ -57,7 +57,7 @@ export function TravelJournal({ destination: d, isDemo, onClose, onEdit, onShowO
     setBusy(true);
     try { await removePhoto(photoId); await reload(); setError(null); }
     catch (e) { setError(e instanceof Error ? e.message : 'Could not delete photo.'); }
-    finally { setBusy(false); }
+    finally { announcePhotosChanged(d.id); setBusy(false); }
   }
 
   return <article className="journal" aria-labelledby="journal-title">

@@ -17,6 +17,13 @@ const ACCEPTED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const DATABASE_NAME = 'globe-explorer-journal';
 const STORE_NAME = 'photos';
 
+/** Let the globe refresh its photo markers immediately after a journal edit. */
+export const PHOTOS_CHANGED_EVENT = 'globe-explorer:photos-changed';
+
+export function announcePhotosChanged(destinationId: string): void {
+  window.dispatchEvent(new CustomEvent(PHOTOS_CHANGED_EVENT, { detail: { destinationId } }));
+}
+
 export function validatePhoto(file: Pick<File, 'type' | 'size'>): string | null {
   if (!ACCEPTED_TYPES.has(file.type)) return 'Use JPEG, PNG or WebP images (convert HEIC photos to JPEG first).';
   if (file.size > MAX_PHOTO_BYTES) return 'Choose a photo smaller than 8 MB.';
