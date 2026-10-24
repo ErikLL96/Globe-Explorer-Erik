@@ -3,18 +3,49 @@ import { Camera, ImagePlus, MapPin, Pencil, Trash2, X } from 'lucide-react';
 import type { Destination } from '../domain/types';
 import { addPhoto, announcePhotosChanged, listPhotos, MAX_PHOTOS_PER_DESTINATION, removePhoto, type JournalPhoto } from '../domain/photos';
 
-function LocalPhoto({ photo, onRemove, readOnly }: { photo: JournalPhoto; onRemove: (id:string)=>void; readOnly: boolean }) {
-  const [src, setSrc] = useState<string>('');
+
+function LocalPhoto({ photo, onRemove, readOnly }: {
+  photo: JournalPhoto;
+  onRemove: (id: string) => void;
+  readOnly: boolean;
+}) {
+  const imageRef = useRef<HTMLImageElement>(null);
+
   useEffect(() => {
+    const image = imageRef.current;
+    if (!image) return;
+
     const url = URL.createObjectURL(photo.blob);
-    setSrc(url);
-    return () => URL.revokeObjectURL(url);
-  }, [photo]);
-  return <figure className="journal__photo">
-    {src && <img src={src} alt={photo.name || 'Travel photo'} loading="lazy" />}
-    {!readOnly && <button type="button" className="journal__remove" onClick={()=>onRemove(photo.id)} aria-label={`Remove photo ${photo.name}`} title="Remove photo"><Trash2 size={15}/></button>}
-  </figure>;
+    image.src = url;
+
+    return () => {
+      image.removeAttribute('src');
+      URL.revokeObjectURL(url);
+    };
+  }, [photo.blob]);
+
+  return (
+    <figure className="journal__photo">
+      <img
+        ref={imageRef}
+        alt={photo.name || 'Travel photo'}
+        loading="lazy"
+      />
+      {!readOnly && (
+        <button
+          type="button"
+          className="journal__remove"
+          onClick={() => onRemove(photo.id)}
+          aria-label={`Remove photo ${photo.name}`}
+          title="Remove photo"
+        >
+          <Trash2 size={15} />
+        </button>
+      )}
+    </figure>
+  );
 }
+
 
 interface Props {
   destination: Destination;
