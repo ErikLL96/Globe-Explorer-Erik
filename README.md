@@ -98,7 +98,7 @@ Business logic lives in `src/domain` and has no React or DOM dependency, which i
 Requirements: Node.js 22.12+ or 24 (developed on Node 24.19) and npm.
 
 ```bash
-git clone https://github.com/Nicolaia2d/Globe-Explorer.git
+git clone https://github.com/ErikLL96/Globe-Explorer-Erik.git
 cd Globe-Explorer
 npm install
 npm run dev          # http://localhost:5173
